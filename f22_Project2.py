@@ -1,3 +1,6 @@
+# Evelyn Ahn
+# Partner: Sae Whan Choye
+
 from xml.sax import parseString
 from bs4 import BeautifulSoup
 import re
@@ -25,7 +28,31 @@ def get_listings_from_search_results(html_file):
         ('Loft in Mission District', 210, '1944564'),  # example
     ]
     """
-    pass
+    # Initialize all lists 
+    title = []
+    cost = []
+    id = []
+    output = []
+
+    with open(html_file, encoding='utf-8') as html:
+        regex = "title_(\d+)"
+        soup = BeautifulSoup(html, html.parser)
+    # Finding title and id
+        divs = soup.find_all('div', class_ = "t1jojoys dir dir-ltr")
+        for div in divs:
+            title.append(div.text)
+            id.append(re.findall(regex, div['id'][0]))
+
+    # Finding costs
+        costs = soup.find_all('span', class_ = '_tyxjp1')
+        for cost in costs:
+            cost.append(int(costs.text[1:]))
+    
+    # Adding title, cost, and id to output
+        for i in range(len(title)):
+            output.append((title[i], cost[i], id[i]))
+
+    return output
 
 
 def get_listing_information(listing_id):
@@ -52,6 +79,7 @@ def get_listing_information(listing_id):
         number of bedrooms
     )
     """
+
     pass
 
 
@@ -147,11 +175,12 @@ class TestCases(unittest.TestCase):
         # check that the variable you saved after calling the function is a list
         self.assertEqual(type(listings), list)
         # check that each item in the list is a tuple
-
+        for listing in listings:
+            self.assertEqual(type(listing), tuple)
         # check that the first title, cost, and listing id tuple is correct (open the search results html and find it)
-
+        self.assertEqual(listing[0], ("Loft in Mission District", 210,  '1944564'))
         # check that the last title is correct (open the search results html and find it)
-        pass
+        self.assertEqual(listings[-1], ('Guest suite in Mission District', 238, '32871760'))
 
     def test_get_listing_information(self):
         html_list = ["1623609",
@@ -174,11 +203,11 @@ class TestCases(unittest.TestCase):
             # check that the third element in the tuple is an int
             self.assertEqual(type(listing_information[2]), int)
         # check that the first listing in the html_list has policy number 'STR-0001541'
-
+        self.assertEqual(html_list[0][0], 'STR-0001541')
         # check that the last listing in the html_list is a "Private Room"
-
+        self.assertEqual(html_list[-1][1], "Private Room")
         # check that the third listing has one bedroom
-
+        self.assertEqual(html_list[3][2], 1)
         pass
 
     def test_get_detailed_listing_database(self):
@@ -231,11 +260,11 @@ class TestCases(unittest.TestCase):
         # check that the return value is a list
         self.assertEqual(type(invalid_listings), list)
         # check that there is exactly one element in the string
-
+        self.assertEqual(len(invalid_listings), 1)
         # check that the element in the list is a string
-
+        self.assertEqual(type(invalid_listings[0]), str)
         # check that the first element in the list is '16204265'
-        pass
+        self.assertEqual(invalid_listings[0], '16204265')
 
 
 if __name__ == '__main__':
