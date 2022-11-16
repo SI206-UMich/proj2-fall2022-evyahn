@@ -21,7 +21,6 @@ def get_listings_from_search_results(html_file):
     The listing id is found in the url of a listing. For example, for
         https://www.airbnb.com/rooms/1944564
     the listing id is 1944564.
-.
 
     [
         ('Title of Listing 1', 'Cost 1', 'Listing ID 1'),  # format
@@ -79,9 +78,47 @@ def get_listing_information(listing_id):
         number of bedrooms
     )
     """
+    policy_number = ''
+    place_type = ''
+    num_bed = 1
 
-    pass
+    html_file = "html_files/listng_" + listing_id + ".html"
+    with open(html_file, encoding='utf=8') as html:
+        re1 = 'private'
+        re2 = 'shared'
+        re3 = 'Policy number: (.)'
 
+        soup = BeautifulSoup(html, 'html.parser')
+        divs = soup.find_all('div', class_ = '_cv5qq4')
+        polis = soup.find_all('li', class_ = 'f19phm7j dir dir-ltr')
+        for poliNum in polis:
+            if re.findall(re3, poliNum.text):
+                policy = re.findall(re3, poliNum.text)[0]
+                if re.search('pending', policy.lower()):
+                    policy_number = "Pending"
+                elif re.search('exempt', policy.lower()) or 'not' in policy.lower():
+                    policy_number = 'Exempt'
+                else:
+                    policy_number = policy
+        
+        for div in divs:
+            if re.search(re1, div.text.lower()):
+                place_type = ('Private Room')
+            elif re.search(re2, div.text.lower()):
+                place_type = ('Shared Room')
+            else:
+                place_type = ('Entire Room')
+        
+        spans = soup.find_all('li', class_ = "l7n4lsf dir dir-ltr")
+        re4 = 'bedroom'
+        for span in spans:
+            if re.search(re4, span.text.lower()):
+                s = re.sub('[^0-9]', '', span.text)
+                if len(s) != 0:
+                    num_bed = int(s)
+
+        return (policy_number, place_type, num_bed)
+ 
 
 def get_detailed_listing_database(html_file):
     """
@@ -93,11 +130,17 @@ def get_detailed_listing_database(html_file):
 
     [
         (Listing Title 1,Cost 1,Listing ID 1,Policy Number 1,Place Type 1,Number of Bedrooms 1),
-        (Listing Title 2,Cost 2,Listing ID 2,Policy Number 2,Place Type 2,Number of Bedrooms 2),
+        (Listing Titlqe 2,Cost 2,Listing ID 2,Policy Number 2,Place Type 2,Number of Bedrooms 2),
         ...
     ]
     """
-    pass
+    output = []
+    listings = get_listings_from_search_results(html_file)
+    for list in listings:
+        info = get_listing_information(list[2])
+        output.append((list[0],list[1],list[2],info[0],info[1],info[2]))
+        
+    return output
 
 
 def write_csv(data, filename):
@@ -122,9 +165,12 @@ def write_csv(data, filename):
 
     This function should not return anything.
     """
-    pass
-
-
+    with open(filename, 'w', newline = "", encoding='utf-8') as outfile:
+        writer = csv.writer(outfile)
+        writer.writerow(("Listing Title","Cost","Listing ID","Policy Number","Place Type","Number of Bedrooms"))
+        data.sort(key = lambda x : x[1])
+        writer.writerows(data)
+    
 def check_policy_numbers(data):
     """
     Write a function that takes in a list of tuples called data, (i.e. the one that is returned by
@@ -144,7 +190,21 @@ def check_policy_numbers(data):
     ]
 
     """
-    pass
+    output = []
+    "2022-009365STR"
+    regex1 = "^20\d{2}-00\d{4}STR$"
+    regex2 = "^STR-000\d{4}$"
+    
+    for listing in data:
+        policy_number = listing[3].strip()
+        if policy_number not in ["Pending", "Exempt"]:
+            if re.search(regex1, policy_number):
+                pass
+            elif re.search(regex2, policy_number):
+                pass
+            else:
+                output.append(listing[2])
+    return output
 
 
 def extra_credit(listing_id):
@@ -161,7 +221,26 @@ def extra_credit(listing_id):
     gone over their 90 day limit, else return True, indicating the lister has
     never gone over their limit.
     """
-    pass
+    html_file = "html_files/listing_" + listing_id + "_reviews.html"
+    with open(html_file, encoding='utf-8') as html:
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # dates = soup.find_all('li', class_ = "_1f1oir5")
+        dates = soup.find_all('div', class_ = "r1are2x1 dir dir-ltr")
+        check = {}
+        
+        regex = "[a-zA-Z]+\s(\d{4})"
+        for date in dates:
+            li = date.find_all('li', class_ = "_1f1oir5")
+            for x in li:
+                year = re.findall(regex, x.text)
+            
+                if year[0] in check:
+                    check[year[0]] += 1
+                else:
+                    check[year[0]] = 1
+       
+        return max(check.values()) <= 90
 
 
 class TestCases(unittest.TestCase):
@@ -208,7 +287,7 @@ class TestCases(unittest.TestCase):
         self.assertEqual(html_list[-1][1], "Private Room")
         # check that the third listing has one bedroom
         self.assertEqual(html_list[3][2], 1)
-        pass
+        
 
     def test_get_detailed_listing_database(self):
         # call get_detailed_listing_database on "html_files/mission_district_search_results.html"
@@ -227,7 +306,7 @@ class TestCases(unittest.TestCase):
         # check that the last tuple is made up of the following:
         # 'Guest suite in Mission District', 238, '32871760', 'STR-0004707', 'Entire Room', 1
 
-        pass
+        
 
     def test_write_csv(self):
         # call get_detailed_listing_database on "html_files/mission_district_search_results.html"
